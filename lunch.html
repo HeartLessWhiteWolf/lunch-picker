@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天中午吃什么？ - 终极午餐选择器 Pro</title>
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --bg-grad-1: #a1c4fd;
+            --bg-grad-2: #c2e9fb;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #2D3436;
+            --text-light: #636E72;
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            --radius: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+        }
+
+        body {
+            /* 精美渐变背景 */
+            background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            /* 毛玻璃效果 */
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            
+            width: 100%;
+            max-width: 650px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        /* 顶部时钟与倒计时 */
+        .time-panel {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.8rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .countdown {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 2.2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        p.subtitle {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* 顶部控制区 */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: rgba(241, 243, 245, 0.8);
+            padding: 0.5rem;
+            border-radius: 50px;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        /* 游戏区 */
+        .game-area {
+            position: relative;
+            height: 380px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        /* 转盘样式 */
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+        }
+        
+        canvas#wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            background: #fff;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 35px solid #ff5252;
+            z-index: 10;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+        }
+
+        .spin-btn-wrap {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* 3D抽签样式 */
+        .lots-container {
+            display: none;
+            gap: 1.5rem;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .card-scene {
+            width: 110px;
+            height: 160px;
+            perspective: 800px;
+            cursor: pointer;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, var(--primary) 0%, #ff9a9e 100%);
+            color: white;
+            font-size: 3rem;
+        }
+
+        .card-front::after {
+            content: '?';
+            font-family: Arial, sans-serif;
+        }
+
+        .card-back {
+            background: white;
+            color: var(--text-main);
+            transform: rotateY(180deg);
+            border: 3px solid var(--primary);
+        }
+        
+        /* 中奖签高亮 */
+        .card.winner .card-back {
+            background: #fff9e6;
+            border-color: #ffb703;
+            color: #d00000;
+        }
+
+        .lots-tip {
+            position: absolute;
+            bottom: 20px;
+            color: var(--text-light);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* 操作按钮 */
+        .action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .action-btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 选项管理区 */
+        .options-manager {
+            text-align: left;
+            border-top: 1px solid rgba(0,0,0,0.08);
+            padding-top: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .input-group input:focus {
+            border-color: var(--secondary);
+            background: #fff;
+        }
+
+        .add-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .add-btn:hover {
+            background: #3bbcb3;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text-main);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeIn 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .tag .del-btn {
+            background: transparent;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 结果弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 3rem;
+            border-radius: var(--radius);
+            text-align: center;
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            max-width: 90%;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-content h2 {
+            font-size: 3rem;
+            color: var(--primary);
+            margin: 1rem 0;
+            text-shadow: 2px 2px 0px #ffeaa7;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="time-panel">
+        <span id="current-time">🕒 时间加载中...</span>
+        <span class="countdown" id="off-work-countdown">⏳ 计算中...</span>
+    </div>
+
+    <h1>午餐选择器 🍱</h1>
+    <p class="subtitle">干饭人，干饭魂，今天中午吃点好的！</p>
+
+    <div class="controls">
+        <div class="toggle-group" id="game-mode">
+            <button class="toggle-btn active" data-mode="wheel">🎡 命运转盘</button>
+            <button class="toggle-btn" data-mode="lots">🥢 翻牌抽签</button>
+        </div>
+        <div class="toggle-group" id="dining-type">
+            <button class="toggle-btn active" data-type="外卖">🛵 外卖</button>
+            <button class="toggle-btn" data-type="堂食">🍽️ 堂食</button>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="wheel-container" id="wheel-view">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheel" width="600" height="600"></canvas>
+            <div class="spin-btn-wrap">
+                <button class="action-btn" id="spin-btn">开始转动</button>
+            </div>
+        </div>
+
+        <div class="lots-container" id="lots-view">
+            <div class="card-scene" onclick="pickLot(0)">
+                <div class="card" id="card-0">
+                    <div class="card-face card-front"></div>
+                    <div class="card-face card-back"></div>
+                </div>
+            </div>
+            <div class="card-scene" onclick="pickLot(1)">
+                <div class="card" id="card-1">
+                    <div class="card-face card-front"></div>
+                    <div class="card-face card-back"></div>
+                </div>
+            </div>
+            <div class="card-scene" onclick="pickLot(2)">
+                <div class="card" id="card-2">
+                    <div class="card-face card-front"></div>
+                    <div class="card-face card-back"></div>
+                </div>
+            </div>
+            <div class="lots-tip" id="lots-tip">请凭直觉翻开一张牌 👆</div>
+        </div>
+    </div>
+
+    <div class="options-manager">
+        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;">📝 候选菜单</h3>
+        <div class="input-group">
+            <input type="text" id="new-option" placeholder="输入你想吃的美食名称..." onkeypress="if(event.key==='Enter') addOption()">
+            <button class="add-btn" onclick="addOption()">添加</button>
+        </div>
+        <div class="tags-container" id="tags-container">
+            </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="result-modal">
+    <div class="modal-content">
+        <p style="color: var(--text-light); font-size: 1.2rem;">✨ 命中注定的午餐是 ✨</p>
+        <h2 id="result-text">牛饭饭</h2>
+        <p id="result-type" style="font-weight: bold; color: var(--secondary); margin-bottom: 1.5rem; font-size: 1.2rem;">[ 🛵 外卖 ]</p>
+        <button class="action-btn" onclick="closeModal()">太棒了，就吃这个！</button>
+    </div>
+</div>
+
+<script>
+    // 默认选项
+    let options = ['牛饭饭', '碗湘乐', '尔海麦', '华记烧腊', '粿条', '郑一白切', '百姓小炒', '吉阿婆', '想面', '钵钵香'];
+    let currentMode = 'wheel';
+    let currentType = '外卖';
+    
+    // 转盘状态
+    let currentRotation = 0;
+    let isSpinning = false; // 用于锁定转盘和抽签动作
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    
+    // 高级配色方案
+    const wheelColors = ['#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff', '#fffffc', '#e2ece9'];
+
+    // 初始化
+    function init() {
+        renderTags();
+        drawWheel();
+        bindEvents();
+        
+        // 启动时钟和倒计时
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+
+    // 更新时间和下班倒计时
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+        document.getElementById('current-time').innerText = `🕒 ${timeString}`;
+
+        // 设定下班时间为今天下午 18:00:00
+        const offWorkTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0, 0);
+        const diff = offWorkTime - now;
+
+        const countdownEl = document.getElementById('off-work-countdown');
+        if (diff > 0) {
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            countdownEl.innerText = `距离下班：${h}时 ${m}分 ${s}秒 🚀`;
+            countdownEl.style.color = 'var(--primary)';
+        } else {
+            countdownEl.innerText = `🎉 已经下班啦！快去干饭！`;
+            countdownEl.style.color = '#e1b12c';
+        }
+    }
+
+    // 事件绑定
+    function bindEvents() {
+        // 游戏模式切换
+        document.querySelectorAll('#game-mode .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if(isSpinning) return; // 动画中禁止切换
+                document.querySelectorAll('#game-mode .toggle-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentMode = e.target.dataset.mode;
+                document.getElementById('wheel-view').style.display = currentMode === 'wheel' ? 'block' : 'none';
+                document.getElementById('lots-view').style.display = currentMode === 'lots' ? 'flex' : 'none';
+                resetLots(); // 切换时重置卡牌
+            });
+        });
+
+        // 堂食外卖切换
+        document.querySelectorAll('#dining-type .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('#dining-type .toggle-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentType = e.target.dataset.type;
+            });
+        });
+
+        // 动作按钮
+        document.getElementById('spin-btn').addEventListener('click', spinWheel);
+    }
+
+    // 绘制美化后且文字居中的转盘
+    function drawWheel() {
+        // 画布实际大小是 600x600，利用高清画布缩小显示解决锯齿问题
+        const centerX = 300;
+        const centerY = 300;
+        const radius = 300;
+
+        if(options.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#eee";
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#999";
+            ctx.font = "30px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("请添加选项", centerX, centerY);
+            return;
+        }
+
+        const arc = Math.PI * 2 / options.length;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < options.length; i++) {
+            const angle = i * arc;
+            
+            // 绘制扇形
+            ctx.beginPath();
+            ctx.fillStyle = wheelColors[i % wheelColors.length];
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, angle, angle + arc, false);
+            ctx.fill();
+            
+            // 绘制扇形分隔线
+            ctx.strokeStyle = "rgba(255,255,255,0.7)";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 绘制居中文字
+            ctx.save();
+            // 将原点移动到圆心
+            ctx.translate(centerX, centerY);
+            // 旋转画布，使目标扇形中线水平向右
+            ctx.rotate(angle + arc / 2);
+            
+            // 设置文字排版：右对齐（靠近圆弧边缘），垂直居中
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#333";
+            ctx.font = "bold 32px 'Microsoft YaHei', sans-serif";
+            
+            const text = options[i];
+            // 在水平向右的线上绘制文字，离圆心一段距离 (radius - 40)
+            ctx.fillText(text.length > 8 ? text.substring(0,7)+'...' : text, radius - 40, 0);
+            ctx.restore();
+        }
+    }
+
+    // 转盘逻辑
+    function spinWheel() {
+        if (isSpinning || options.length === 0) return;
+        isSpinning = true;
+
+        const spinBtn = document.getElementById('spin-btn');
+        spinBtn.style.opacity = '0.5';
+        spinBtn.innerText = '天意裁决中...';
+
+        const extraSpins = 6; // 多转几圈更刺激
+        const randomIndex = Math.floor(Math.random() * options.length);
+        const arc = 360 / options.length;
+        
+        // 计算目标角度
+        const targetAngle = 270 - (randomIndex * arc + arc / 2);
+        currentRotation += (360 * extraSpins) + targetAngle - (currentRotation % 360);
+        
+        canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+        // 转盘CSS动画是4秒，结束后等1秒再弹窗
+        setTimeout(() => {
+            spinBtn.style.opacity = '1';
+            spinBtn.innerText = '开始转动';
+            
+            setTimeout(() => {
+                showResult(options[randomIndex]);
+                isSpinning = false;
+            }, 1000); // 停止后等待 1 秒
+
+        }, 4000); 
+    }
+
+    // 重置抽签卡牌状态
+    function resetLots() {
+        for(let i=0; i<3; i++) {
+            const card = document.getElementById(`card-${i}`);
+            card.classList.remove('is-flipped', 'winner');
+        }
+        document.getElementById('lots-tip').innerText = '请凭直觉翻开一张牌 👆';
+    }
+
+    // 抽签（翻牌）逻辑
+    function pickLot(selectedIndex) {
+        if (isSpinning || options.length === 0) return;
+        isSpinning = true;
+        
+        document.getElementById('lots-tip').innerText = '命运的齿轮开始转动...';
+
+        // 随机抽取3个不同的选项作为卡牌背面的食物（如果选项少于3个则允许重复）
+        let shuffled = [...options].sort(() => 0.5 - Math.random());
+        let choices = shuffled.slice(0, 3);
+        while(choices.length < 3 && options.length > 0) {
+            choices.push(options[Math.floor(Math.random() * options.length)]);
+        }
+
+        const winnerFood = choices[selectedIndex];
+
+        // 将食物名字写入卡牌背面
+        for(let i=0; i<3; i++) {
+            document.querySelector(`#card-${i} .card-back`).innerText = choices[i];
+        }
+
+        // 1. 翻开用户选中的卡牌
+        const selectedCard = document.getElementById(`card-${selectedIndex}`);
+        selectedCard.classList.add('is-flipped', 'winner');
+
+        // 2. 等待 1 秒后，翻开另外两张未被选中的牌
+        setTimeout(() => {
+            for(let i=0; i<3; i++) {
+                if (i !== selectedIndex) {
+                    document.getElementById(`card-${i}`).classList.add('is-flipped');
+                }
+            }
+            
+            // 3. 翻开其他牌后再等 1 秒，弹出最终结果
+            setTimeout(() => {
+                showResult(winnerFood);
+                isSpinning = false;
+            }, 1200);
+
+        }, 1200);
+    }
+
+    // 选项列表渲染
+    function renderTags() {
+        const container = document.getElementById('tags-container');
+        container.innerHTML = '';
+        options.forEach((opt, index) => {
+            const div = document.createElement('div');
+            div.className = 'tag';
+            div.innerHTML = `
+                ${opt} 
+                <button class="del-btn" onclick="removeOption(${index})" title="删除">&times;</button>
+            `;
+            container.appendChild(div);
+        });
+        drawWheel(); // 每次选项变动重绘转盘
+    }
+
+    // 增加选项
+    function addOption() {
+        if(isSpinning) return;
+        const input = document.getElementById('new-option');
+        const val = input.value.trim();
+        if (val && !options.includes(val)) {
+            options.push(val);
+            input.value = '';
+            renderTags();
+        } else if (options.includes(val)) {
+            alert('这个选项已经存在啦！');
+        }
+    }
+
+    // 删除选项
+    function removeOption(index) {
+        if(isSpinning) return;
+        if(options.length <= 2) {
+            alert('至少得保留两个选项吧！不然没得选啦~');
+            return;
+        }
+        options.splice(index, 1);
+        renderTags();
+    }
+
+    // 显示结果弹窗
+    function showResult(food) {
+        document.getElementById('result-text').innerText = food;
+        document.getElementById('result-type').innerText = `[ ${currentType === '外卖' ? '🛵 外卖' : '🍽️ 堂食'} ]`;
+        document.getElementById('result-modal').classList.add('show');
+    }
+
+    // 关闭弹窗
+    function closeModal() {
+        document.getElementById('result-modal').classList.remove('show');
+        if(currentMode === 'lots') {
+            // 如果是抽签模式，关闭弹窗时把牌翻回去
+            setTimeout(resetLots, 300);
+        }
+    }
+
+    // 运行初始化
+    init();
+
+</script>
+</body>
+</html>
